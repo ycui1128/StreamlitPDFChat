@@ -1,19 +1,16 @@
 """Python file to serve as the frontend"""
 import streamlit as st
 from streamlit_chat import message
-
-from langchain.chains import ConversationChain
-from langchain.llms import OpenAI
 import re
 from io import BytesIO
 from typing import List
 from langchain.indexes import VectorstoreIndexCreator
 import streamlit as st
-from langchain import  OpenAI
 from langchain.docstore.document import Document
-from langchain.llms import OpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.llms import OpenAI
 
 # Define a function to parse a PDF file and extract its text content
 @st.cache_data
@@ -69,8 +66,9 @@ def text_to_docs(text: str) -> List[Document]:
 # Define a function for the embeddings
 @st.cache_resource
 def test_embed(uploadFileName):
+    embeddings = OpenAIEmbeddings(openai_api_key=api)
     with st.spinner(f"It's indexing {uploadFileName}.."):
-        index = VectorstoreIndexCreator().from_documents(pages)
+        index = VectorstoreIndexCreator(embedding = embeddings).from_documents(pages)
     st.success("Embeddings done. ", icon="✅")
     return index
 
@@ -91,13 +89,13 @@ st.sidebar.markdown(
 )
 st.sidebar.divider()
 
-# api = st.sidebar.text_input(
-#                 "**Enter OpenAI API Key**",
-#                 type="password",
-#                 placeholder="sk-",
-#                 help="https://platform.openai.com/account/api-keys",
-#             )
-# st.session_state.apikey = api
+api = st.sidebar.text_input(
+                "**Enter OpenAI API Key to talk with PDF**",
+                type="password",
+                placeholder="sk-",
+                help="https://platform.openai.com/account/api-keys",
+            )
+st.session_state.apikey = api
 # Allow the user to upload a PDF file
 with st.expander("Upload PDF file", expanded=False):
     uploaded_file = st.file_uploader("**Upload Your PDF File**", type=["pdf"])
@@ -111,10 +109,11 @@ with st.expander("Upload PDF file", expanded=False):
                 label="Select Page", min_value=1, max_value=len(pages), step=1
             )
             pages[page_sel - 1]
-            index = test_embed(name_of_file)
+            if st.session_state.apikey:
+                index = test_embed(name_of_file)
                
     
-if uploaded_file:
+if uploaded_file and st.session_state.apikey:
     if "generated" not in st.session_state:
         st.session_state["generated"] = []
 
@@ -138,7 +137,8 @@ if uploaded_file:
         user_input =""
     
     if user_input:
-        output = index.query(question=user_input)
+        llm = OpenAI(model_name="text-davinci-003", openai_api_key=api)
+        output = index.query(question=user_input,llm=llm)
 
         st.session_state.past.append(user_input)
         st.session_state.generated.append(output)
