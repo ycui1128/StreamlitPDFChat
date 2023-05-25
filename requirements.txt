@@ -4,3 +4,4 @@ pypdf
 streamlit
 streamlit-chat
 chromadb
+tiktoken
