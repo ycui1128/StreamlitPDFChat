@@ -5,3 +5,6 @@ streamlit
 streamlit-chat
 chromadb
 tiktoken
+faiss-cpu
+youtube-transcript-api
+pytube

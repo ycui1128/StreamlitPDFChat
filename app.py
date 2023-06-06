@@ -103,6 +103,8 @@ api = st.sidebar.text_input(
                 help="https://platform.openai.com/account/api-keys",
             )
 st.session_state.apikey = api
+if "codeExist" not in st.session_state:
+        st.session_state["codeExist"] = False
 # Allow the user to upload a PDF file
 with st.expander("Upload PDF file", expanded=False):
     uploaded_file = st.file_uploader("**Upload Your PDF File**", type=["pdf"])
@@ -118,16 +120,21 @@ with st.expander("Upload PDF file", expanded=False):
             pages[page_sel - 1]
             if st.session_state.apikey:
                 index = test_embed(name_of_file)
-               
-    
-if uploaded_file and st.session_state.apikey:
-    if "generated" not in st.session_state:
-        st.session_state["generated"] = []
+    code = st.text_input('Input Invitation Code', '')           
+    codes =("CJK0EI2DQC","5U7DPJFFWL","8UN6B8YE8S","IFDRWX4J68","72Q81TPKZB",
+        "581B2MXPWG","OGIZ86HLYA","WN1THF5QGO","SLXL3XUU46","FSI1UA6TE5")
+    if code in codes:
+        st.session_state.codeExist = True
+    else:
+        st.session_state.codeExist = False
+        
+if "generated" not in st.session_state:
+    st.session_state["generated"] = []
 
-    if "past" not in st.session_state:
-            st.session_state["past"] = []
+if "past" not in st.session_state:
+        st.session_state["past"] = []
 
-
+if uploaded_file and st.session_state.apikey and st.session_state.codeExist:
     def get_text():
         input_text = st.text_input("Talk with PDF: ", "Hello, how are you?", key="input")
         return input_text
@@ -141,17 +148,20 @@ if uploaded_file and st.session_state.apikey:
     if clear:
         st.session_state["generated"] = []
         st.session_state["past"] = []
-        user_input =""
+        user_input=""
+    
     
     if user_input:
         llm = OpenAI(model_name="text-davinci-003", openai_api_key=api)
-        output = index.query(question=user_input,llm=llm)
+        with st.spinner("answering ..."):
+            output = index.query(question=user_input,llm=llm)
 
-        st.session_state.past.append(user_input)
+        st.session_state["past"].append(user_input)
         st.session_state.generated.append(output)
-
+        user_input =""
     if st.session_state["generated"]:
 
         for i in range(len(st.session_state["generated"]) - 1, -1, -1):
             message(message=st.session_state["generated"][i], avatar_style="icons", key=str(i))
             message(message=st.session_state["past"][i], is_user=True, avatar_style="big-smile", key=str(i) + "_user")
+        
